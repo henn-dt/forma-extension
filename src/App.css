@@ -1,0 +1,65 @@
+@font-face {
+  font-family: "NB Grotesk";
+  src:
+    url("/fonts/NBGROTESK-REGULAR.OTF") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "NB Grotesk Bold";
+  src:
+    url("/fonts/NBGROTESK-BOLD.OTF") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  font-family: "NB Grotesk Bold", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: "NB Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: #9CFF80;
+  color: #1a1a1a;
+}
+
+.panel {
+  padding: 16px;
+  font-family: "NB Grotesk Bold", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #f8f8f8;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hint {
+  color: #666;
+}
