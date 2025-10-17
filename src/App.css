@@ -18,6 +18,7 @@
 
 :root {
   font-family: "NB Grotesk Bold", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #1a1a1a;
 }
 
 body {
@@ -34,17 +35,33 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .row {
   display: flex;
+  font-family: "NB Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   align-items: center;
   gap: 8px;
+  margin: 10px 0;
+}
+
+.row select {
+  font-family: "NB Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.row span {
+  font-family: "NB Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
 .buttons {
   display: flex;
   gap: 8px;
+  margin: 15px 0;
 }
 
 button {
@@ -52,7 +69,7 @@ button {
   border: 1px solid #ddd;
   border-radius: 8px;
   cursor: pointer;
-  background: #f8f8f8;
+  background: #f7f7f7;
 }
 
 button:disabled {
@@ -60,6 +77,58 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.hint {
+.box {
+  margin-top: 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.line {
+  display: flex;
+  justify-content: space-between;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  padding: 2px 0;
+  margin: 5px 0;
+}
+
+.label {
+  color: #555;
+  margin-right: 8px;
+  min-width: 80px;
+}
+
+.json {
+  margin-top: 8px;
+  padding: 8px;
+  background: #fbfbfb;
+  border: 1px dashed #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  overflow: auto;
+}
+
+.muted {
   color: #666;
+}
+
+.hint {
+  color: #777;
+  font-size: 12px;
+  margin-top: 20px;
+  font-size: 0.9em;
+}
+
+.section {
+  margin: 20px 0;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1em;
+  color: #333;
 }

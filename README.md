@@ -2,7 +2,7 @@
 
 A React-based Forma extension that allows users to select and color buildings within Forma. Built following the [official Forma tutorial](https://aps.autodesk.com/en/docs/forma/v1/embedded-views/tutorial/).
 
-![Forma Extension Screenshot](screenshot.png) <!-- You may want to add a screenshot -->
+![Forma Extension Screenshot](/ScreenshotFormExtension.png)
 
 ## Features
 
