@@ -40,6 +40,7 @@ type MapboxData = {
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const MAPBOX_STYLE = 'mapbox/satellite-v9';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 function calculateArea(bbox: BBox): number {
   const width = Math.abs(bbox.east - bbox.west);
@@ -54,22 +55,68 @@ function calculateDimensions(bbox: BBox): { width: number; length: number } {
   };
 }
 
+// Replace the calculatePreciseZoomLevel function with the simpler version that worked:
 function calculateZoomLevel(bbox: BBox): number {
   const width = Math.abs(bbox.east - bbox.west);
   const height = Math.abs(bbox.north - bbox.south);
   const maxDimension = Math.max(width, height);
   
-  // Empirical zoom levels for different terrain sizes:
-  // ~500m = zoom 16
-  // ~1000m = zoom 15
-  // ~2000m = zoom 14
-  // ~4000m = zoom 13
-  
+  // Empirical zoom levels based on terrain size
   if (maxDimension < 750) return 16;
   if (maxDimension < 2000) return 15;
   if (maxDimension < 3000) return 14;
   if (maxDimension < 6000) return 13;
   return 12;
+}
+
+function transformBboxToLatLon(
+  utmBbox: BBox,
+  srid: number,
+  refPoint: [number, number] // lat, lon of the reference point
+): { 
+  corners: { lat: number; lon: number }[];
+  center: { lat: number; lon: number };
+  alignedBbox: { west: number; south: number; east: number; north: number };
+} {
+  // The bbox values are OFFSETS from the reference point, not absolute coordinates
+  // We can't accurately transform these without the full UTM coordinates
+  // So instead, we'll work directly in lat/lon space
+  
+  // Since Forma's bbox is small (< 2km typically), we can use a simpler approach:
+  // Convert the offset distances to approximate lat/lon degrees
+  
+  const [refLat, refLon] = refPoint;
+  
+  // Approximate meters to degrees conversion at this latitude
+  const metersPerDegreeLat = 111320; // roughly constant
+  const metersPerDegreeLon = 111320 * Math.cos(refLat * Math.PI / 180);
+  
+  // Convert bbox offsets to lat/lon offsets
+  const westLon = refLon + (utmBbox.west / metersPerDegreeLon);
+  const eastLon = refLon + (utmBbox.east / metersPerDegreeLon);
+  const southLat = refLat + (utmBbox.south / metersPerDegreeLat);
+  const northLat = refLat + (utmBbox.north / metersPerDegreeLat);
+  
+  const corners = [
+    { lat: southLat, lon: westLon }, // SW
+    { lat: northLat, lon: westLon }, // NW
+    { lat: northLat, lon: eastLon }, // NE
+    { lat: southLat, lon: eastLon }, // SE
+  ];
+  
+  const alignedBbox = {
+    west: westLon,
+    south: southLat,
+    east: eastLon,
+    north: northLat
+  };
+  
+  const center = {
+    lat: (southLat + northLat) / 2,
+    lon: (westLon + eastLon) / 2
+  };
+  
+  return { corners, center, alignedBbox };
 }
 
 function generateMapboxURL(
@@ -78,7 +125,7 @@ function generateMapboxURL(
   width: number = 1280,
   height: number = 1280
 ): string {
-  return `https://api.mapbox.com/styles/v1/${MAPBOX_STYLE}/static/${center.lon},${center.lat},${zoom}/${width}x${height}?access_token=${MAPBOX_ACCESS_TOKEN}`;
+  return `https://api.mapbox.com/styles/v1/${MAPBOX_STYLE}/static/${center.lon},${center.lat},${zoom.toFixed(2)}/${width}x${height}?access_token=${MAPBOX_ACCESS_TOKEN}`;
 }
 
 function App() {
@@ -88,7 +135,7 @@ function App() {
   const [bbox, setBbox] = useState<BBox | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [mapboxData, setMapboxData] = useState<MapboxData | null>(null);
-  const [crs, setCrs] = useState<string>("EPSG:4326");
+  const [manualZoom, setManualZoom] = useState<string>(""); // New state for manual zoom input
 
   const bboxPretty = useMemo(() => {
     if (!bbox) return "";
@@ -112,6 +159,7 @@ function App() {
         srid: projectData.srid,
         timezone: projectData.timezone,
         refPoint: projectData.refPoint,
+        projString: projectData.projString
       } : null,
       terrainBounds: {
         west: parseFloat(bbox.west.toFixed(6)),
@@ -174,21 +222,41 @@ function App() {
   };
 
   const fetchMapboxTile = async (zoomOverride?: number) => {
-    if (!bbox || !location) {
+    if (!bbox || !location || !projectData) {
       setStatus("Please fetch project info and bbox first ❌");
       return;
     }
 
-    setStatus("Generating Mapbox URL...");
+    setStatus("Generating Mapbox URL with projection correction...");
     try {
-      const center = { lat: location[0], lon: location[1] };
-      const zoom = zoomOverride !== undefined ? zoomOverride : calculateZoomLevel(bbox);
-      const url = generateMapboxURL(center, zoom);
+      const transformed = transformBboxToLatLon(bbox, projectData.srid, location);
+      
+      console.log('UTM Bbox (offsets from ref point):', bbox);
+      console.log('Reference point (lat, lon):', location);
+      console.log('Transformed corners:', transformed.corners);
+      console.log('Aligned lat/lon bbox:', transformed.alignedBbox);
+      
+      // Use manual zoom if provided, otherwise calculate
+      let zoom: number;
+      if (zoomOverride !== undefined) {
+        zoom = zoomOverride;
+      } else if (manualZoom && !isNaN(parseFloat(manualZoom))) {
+        zoom = parseFloat(manualZoom);
+      } else {
+        zoom = calculateZoomLevel(bbox);
+      }
+      
+      // Clamp and round to 2 decimals
+      zoom = Math.round(Math.max(1, Math.min(22, zoom)) * 100) / 100;
+
+      console.log('Zoom level:', zoom);
+      
+      const url = generateMapboxURL(transformed.center, zoom);
 
       const newMapboxData: MapboxData = {
         center: {
-          latitude: center.lat,
-          longitude: center.lon
+          latitude: transformed.center.lat,
+          longitude: transformed.center.lon
         },
         zoom: zoom,
         style: MAPBOX_STYLE,
@@ -205,15 +273,16 @@ function App() {
         url: url
       };
 
+      console.log('Setting mapbox data:', newMapboxData);
       setMapboxData(newMapboxData);
+      setManualZoom(zoom.toFixed(2)); // Update input field
       setStatus("Mapbox URL generated ✔");
       
       console.log("Mapbox Request Data:", {
         center: newMapboxData.center,
-        zoom: newMapboxData.zoom,
-        style: newMapboxData.style,
-        size: newMapboxData.size,
-        bbox: newMapboxData.bbox
+        zoom: newMapboxData.zoom.toFixed(2),
+        transformedBbox: transformed.alignedBbox,
+        originalUTMBbox: bbox
       });
     } catch (err) {
       console.error("Failed to generate Mapbox URL:", err);
@@ -223,16 +292,37 @@ function App() {
 
   const adjustZoom = (delta: number) => {
     if (!mapboxData) return;
-    const newZoom = Math.max(1, Math.min(20, mapboxData.zoom + delta));
-    fetchMapboxTile(newZoom);
+    // Adjust by 0.1 for finer control
+    const newZoom = Math.round((mapboxData.zoom + delta * 0.01) * 100) / 100;
+    const clampedZoom = Math.max(1, Math.min(22, newZoom));
+    fetchMapboxTile(clampedZoom);
   };
+
+  const handleManualZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty string, numbers, and one decimal point
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setManualZoom(value);
+    }
+  };
+
+  const applyManualZoom = () => {
+    const zoom = parseFloat(manualZoom);
+    if (!isNaN(zoom) && zoom >= 1 && zoom <= 22) {
+      fetchMapboxTile(zoom);
+    } else {
+      setStatus("Invalid zoom level. Must be between 1 and 22 ❌");
+      setTimeout(() => setStatus(""), 2000);
+    }
+  };
+
 
   const copyMapboxJSON = async () => {
     if (!mapboxData) return;
 
     const safeData = {
       center: mapboxData.center,
-      zoom: mapboxData.zoom,
+      zoom: typeof mapboxData.zoom === 'number' ? parseFloat(mapboxData.zoom.toFixed(2)) : mapboxData.zoom,
       style: mapboxData.style,
       size: mapboxData.size,
       bbox: mapboxData.bbox
@@ -243,41 +333,41 @@ function App() {
     setTimeout(() => setStatus(""), 1200);
   };
 
-  const downloadTile = async () => {
+  const saveTileToBackend = async () => {
     if (!mapboxData || !mapboxData.url) {
-      setStatus("No tile to download ❌");
+      setStatus("No tile to save ❌");
       return;
     }
 
-    setStatus("Downloading tile...");
+    setStatus("Saving tile to backend...");
     try {
-      // Fetch the image from Mapbox
-      const response = await fetch(mapboxData.url);
-      const blob = await response.blob();
+      const response = await fetch(`${API_BASE_URL}/api/saveTile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: mapboxData.url,
+          projectId: projectId,
+          zoom: mapboxData.zoom,
+          bbox: mapboxData.bbox,
+          center: mapboxData.center
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       
-      // Create a download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
+      setStatus(`Tile saved: ${result.filename} ✔`);
+      console.log('Save result:', result);
       
-      // Generate filename with project info and timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      const filename = `satellite_tile_${projectId || 'unknown'}_zoom${mapboxData.zoom}_${timestamp}.png`;
-      link.download = filename;
-      
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      setStatus(`Tile downloaded: ${filename} ✔`);
       setTimeout(() => setStatus(""), 3000);
     } catch (err) {
-      console.error("Failed to download tile:", err);
-      setStatus("Error downloading tile ❌");
+      console.error("Failed to save tile:", err);
+      setStatus(`Error saving tile ❌`);
     }
   };
 
@@ -285,21 +375,13 @@ function App() {
     <div className="panel">
       <h2>Forma Project Info</h2>
 
-      <label className="row">
-        <span>CRS:</span>
-        <select value={crs} onChange={(e) => setCrs(e.target.value)}>
-          <option value="EPSG:4326">EPSG:4326 (lon/lat)</option>
-          <option value="EPSG:3857">EPSG:3857 (web mercator)</option>
-        </select>
-      </label>
-
       <div className="buttons">
         <button onClick={getProjectInfo}>Get Project Info</button>
         <button onClick={getBBox}>Get Terrain BBox</button>
-        <button onClick={() => fetchMapboxTile()} disabled={!bbox || !location}>
+        <button onClick={() => fetchMapboxTile()} disabled={!bbox || !location || !projectData}>
           Fetch Mapbox Tile
         </button>
-        <button onClick={copyJSON} disabled={!bbox}>Copy JSON</button>
+        <button onClick={copyJSON} disabled={!bbox}>Copy Project JSON</button>
       </div>
 
       <div className="box">
@@ -353,27 +435,72 @@ function App() {
             <h3>Mapbox Satellite Tile</h3>
             <div className="line">
               <span className="label">Zoom Level:</span>
-              <span>{mapboxData.zoom}</span>
+              <span>{typeof mapboxData.zoom === 'number' ? mapboxData.zoom.toFixed(2) : 'N/A'}</span>
             </div>
             <div className="line">
               <span className="label">Center:</span>
-              <span>{mapboxData.center.latitude.toFixed(6)}, {mapboxData.center.longitude.toFixed(6)}</span>
+              <span>
+                {mapboxData.center?.latitude != null && mapboxData.center?.longitude != null
+                  ? `${mapboxData.center.latitude.toFixed(6)}, ${mapboxData.center.longitude.toFixed(6)}`
+                  : 'N/A'}
+              </span>
             </div>
             <div className="line">
               <span className="label">Image Size:</span>
               <span>{mapboxData.size.width} × {mapboxData.size.height}</span>
             </div>
 
+            {/* Manual Zoom Input */}
+            <div style={{ marginTop: '15px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontWeight: 'bold', minWidth: '100px' }}>Manual Zoom:</span>
+                <input
+                  type="text"
+                  value={manualZoom}
+                  onChange={handleManualZoomChange}
+                  placeholder="e.g., 14.95"
+                  style={{
+                    width: '80px',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    textAlign: 'center'
+                  }}
+                />
+                <button 
+                  onClick={applyManualZoom}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#2196F3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  Apply
+                </button>
+              </label>
+              <div style={{ fontSize: '0.85em', color: '#666', marginTop: '5px' }}>
+                Enter zoom level (1.00 - 22.00) with up to 2 decimal places
+              </div>
+            </div>
+
             <div className="buttons" style={{ marginTop: '15px' }}>
               <button 
                 onClick={() => adjustZoom(-1)}
                 disabled={mapboxData.zoom <= 1}
+                title="Zoom out by 0.01"
               >
                 ➖ Zoom Out
               </button>
               <button 
                 onClick={() => adjustZoom(1)}
-                disabled={mapboxData.zoom >= 20}
+                disabled={mapboxData.zoom >= 22}
+                title="Zoom in by 0.01"
               >
                 ➕ Zoom In
               </button>
@@ -387,7 +514,7 @@ function App() {
                 Copy Mapbox JSON
               </button>
               <button 
-                onClick={downloadTile} 
+                onClick={saveTileToBackend} 
                 style={{ 
                   flex: 1,
                   backgroundColor: '#4CAF50',
@@ -395,7 +522,7 @@ function App() {
                   fontWeight: 'bold'
                 }}
               >
-                Download Tile
+                ✓ Confirm & Save Tile
               </button>
             </div>
             

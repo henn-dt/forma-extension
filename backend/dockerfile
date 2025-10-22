@@ -1,0 +1,16 @@
+# Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Only install what backend needs
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY . .
+
+# HTTPS downloads need CA certs in slim/alpine images
+RUN apk add --no-cache ca-certificates && update-ca-certificates
+
+EXPOSE 3001
+CMD ["node", "index.js"]

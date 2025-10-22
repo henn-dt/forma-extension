@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      # Use absolute paths to the project root folders
+      - c:/Users/ABC/AbdellahCh/App_Deployment/FormaTileExtraction/my-react-forma/fetched_tiles:/app/fetched_tiles
+      - c:/Users/ABC/AbdellahCh/App_Deployment/FormaTileExtraction/my-react-forma/segmentation_output:/app/segmentation_output
+      # Mount source files for hot-reload
+      - ./index.js:/app/index.js
+      - ./package.json:/app/package.json
+    restart: unless-stopped
