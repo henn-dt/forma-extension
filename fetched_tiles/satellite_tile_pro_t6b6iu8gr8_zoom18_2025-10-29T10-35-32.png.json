@@ -1,0 +1,18 @@
+{
+  "projectId": "pro_t6b6iu8gr8",
+  "zoom": 18,
+  "bbox": {
+    "west": -979.0211181640625,
+    "south": -920.7213134765625,
+    "east": 977.9788818359375,
+    "north": 920.2786865234375
+  },
+  "center": {
+    "latitude": 51.17195673977082,
+    "longitude": 6.843056010138131
+  },
+  "filename": "satellite_tile_pro_t6b6iu8gr8_zoom18_2025-10-29T10-35-32.png",
+  "filepath": "C:\\Users\\ABC\\AbdellahCh\\App_Deployment\\FormaTileExtraction\\my-react-forma\\fetched_tiles\\satellite_tile_pro_t6b6iu8gr8_zoom18_2025-10-29T10-35-32.png",
+  "timestamp": "2025-10-29T10:35:32.599Z",
+  "imageSize": 14457745
+}

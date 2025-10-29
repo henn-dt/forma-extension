@@ -48,3 +48,14 @@ pnpm-debug.log*
 
 # Vite
 .vite/
+
+# Fetched tiles (exclude all except sample files)
+/fetched_tiles/*
+!/fetched_tiles/satellite_tile_pro_t6b6iu8gr8_zoom18_2025-10-29T10-35-32.png
+!/fetched_tiles/satellite_tile_pro_t6b6iu8gr8_zoom18_2025-10-29T10-35-32.png.json
+!/fetched_tiles/satellite_tile_pro_t6b6iu8gr8_zoom0_2025-10-28T18-40-55.png
+!/fetched_tiles/satellite_tile_pro_t6b6iu8gr8_zoom0_2025-10-28T18-40-55.png.json
+!/fetched_tiles/WMTS-vs-Static/
+
+# GitHub Copilot instructions (contains API usage guidance)
+.github/

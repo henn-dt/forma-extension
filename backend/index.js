@@ -9,7 +9,8 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image data
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Create directories if they don't exist
 const TILES_DIR = path.join(__dirname, '../fetched_tiles');
