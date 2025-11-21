@@ -20,6 +20,8 @@ import { DetectionParametersPanel } from './components/DetectionParametersPanel'
 import { TreeDetectionPreview } from './components/TreeDetectionPreview';
 import { TreeListPanel } from './components/TreeListPanel';
 import { ModelResultPanel } from './components/ModelResultPanel';
+import { TreeElevationDetector } from './components/TreeElevationDetector';
+import { TreePlacementTester } from './components/TreePlacementTester';
 
 // Utility imports for copyJSON function
 import { calculateArea, calculateDimensions } from './utils/geometry.utils';
@@ -392,9 +394,51 @@ function App() {
                       />
 
                       {treePipeline.detectionResult && (
-                        <TreeListPanel
-                          detectionResult={treePipeline.detectionResult}
-                        />
+                        <>
+                          <TreeListPanel
+                            detectionResult={treePipeline.detectionResult}
+                            treesWithElevation={treePipeline.treesWithElevation}
+                          />
+                          
+                          {/* Elevation Detection - NEW */}
+                          {formaProject.projectData && (() => {
+                            const detectionResult = treePipeline.detectionResult!;
+                            const allTrees = [
+                              ...detectionResult.individualTrees.map((t, idx) => ({
+                                x: t.centroidM[0],
+                                y: t.centroidM[1],
+                                tree_id: idx,
+                                type: 'individual',
+                                estimatedDiameterM: t.estimatedDiameterM
+                              })),
+                              ...detectionResult.treeClusters.flatMap(cluster =>
+                                cluster.populatedTrees.map(t => ({
+                                  x: t.positionM[0],
+                                  y: t.positionM[1],
+                                  type: 'populated',
+                                  estimatedDiameterM: t.estimatedDiameterM
+                                }))
+                              )
+                            ];
+                            
+                            return (
+                              <div className="section" style={{ marginTop: '10px' }}>
+                                <TreeElevationDetector
+                                  detectedTrees={allTrees}
+                                  projectData={formaProject.projectData}
+                                  onElevationsDetected={treePipeline.handleElevationsDetected}
+                                  onStatusUpdate={treePipeline.setStatus}
+                                />
+                                
+                                {treePipeline.treesWithElevation && treePipeline.treesWithElevation.length > 0 && (
+                                  <TreePlacementTester
+                                    treesWithElevation={treePipeline.treesWithElevation}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </>
                       )}
 
                       {treePipeline.modelResult && (

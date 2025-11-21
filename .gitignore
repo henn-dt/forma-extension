@@ -76,6 +76,7 @@ python_backend/generated_models/
 python_backend/tree_model/*
 !python_backend/tree_model/Henkel_tree.obj
 !python_backend/tree_model/tree_lowpoly.obj
+!python_backend/tree_model/treeModel_12m.obj
 
 # GitHub Copilot instructions (contains API usage guidance)
 .github/
@@ -92,6 +93,12 @@ forma_Kasper_example.js
 !README.md
 !python_backend/README.md
 !backend/README.md
+Documentation
+rootUrn.json
+rootUrn2.json
+tree-blobid-cache.json
+tree-blobid-result.json
+Example
 
 # Docker
 .dockerignore

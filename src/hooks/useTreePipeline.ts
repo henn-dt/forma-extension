@@ -4,11 +4,24 @@
  */
 
 import { useState } from 'react';
+import { Forma } from 'forma-embedded-view-sdk/auto';
 import type { HSVThresholds, DetectionParameters, TreeDetectionResult } from '../types/treeDetection.types';
 import type { Model3DGenerationResult } from '../types/model3D.types';
 import { detectTrees } from '../services/treeDetection.service';
 import { generate3DModel } from '../services/modelGeneration.service';
+import { getElevationsForTrees } from '../services/elevation.service';
 import type { BBox } from '../types/geometry.types';
+
+interface TreeWithElevation {
+  x: number;
+  y: number;
+  z?: number;
+  tree_id?: number;
+  type?: string;
+  estimatedDiameterM?: number;
+  centroid_m?: [number, number];
+  [key: string]: unknown;
+}
 
 // Default HSV values for green vegetation (from Python script)
 const DEFAULT_HSV: HSVThresholds = {
@@ -36,6 +49,7 @@ export function useTreePipeline() {
   const [modelResult, setModelResult] = useState<Model3DGenerationResult | null>(null);
   const [isDetecting, setIsDetecting] = useState<boolean>(false);
   const [isGeneratingModel, setIsGeneratingModel] = useState<boolean>(false);
+  const [treesWithElevation, setTreesWithElevation] = useState<TreeWithElevation[] | null>(null);
 
   /**
    * Detect trees in the current tile image
@@ -49,6 +63,7 @@ export function useTreePipeline() {
   ): Promise<void> => {
     setStatus("🔍 Detecting trees...");
     setDetectionResult(null);
+    setTreesWithElevation(null);
     setIsDetecting(true);
 
     try {
@@ -59,6 +74,7 @@ export function useTreePipeline() {
 
       console.log('Real-world dimensions:', realDimensions);
 
+      // Step 1: Detect trees
       const result = await detectTrees(
         imageUrl,
         hsvThresholds,
@@ -69,9 +85,52 @@ export function useTreePipeline() {
       setDetectionResult(result);
       
       const totalTrees = result.summary.individualTreesCount + result.summary.totalPopulatedTrees;
-      setStatus(`✅ Detected ${totalTrees} trees (${result.summary.individualTreesCount} individual, ${result.summary.totalPopulatedTrees} in clusters)`);
+      setStatus(`✅ Detected ${totalTrees} trees - fetching elevations...`);
       
       console.log('Detection completed:', result);
+
+      // Step 2: Get terrain offset for elevation fetching
+      const terrainBbox = await Forma.terrain.getBbox();
+      const terrainOffsetX = terrainBbox.min.x;
+      const terrainOffsetY = terrainBbox.min.y;
+
+      // Step 3: Collect all trees and normalize to common format
+      const allTrees = [
+        ...result.individualTrees.map(t => ({ 
+          x: t.centroidM[0], 
+          y: t.centroidM[1],
+          type: 'individual' as const,
+          estimatedDiameterM: t.estimatedDiameterM
+        })),
+        ...result.treeClusters.flatMap(cluster => 
+          cluster.populatedTrees.map(t => ({
+            x: t.positionM[0],
+            y: t.positionM[1],
+            type: 'cluster' as const,
+            centroid_m: cluster.centroidM,
+            estimatedDiameterM: t.estimatedDiameterM
+          }))
+        )
+      ];
+
+      console.log(`📍 Fetching elevations for ${allTrees.length} trees...`);
+
+      // Step 4: Fetch elevations automatically (smart strategy: direct or grid)
+      const treesWithZ = await getElevationsForTrees(
+        allTrees,
+        terrainOffsetX,
+        terrainOffsetY,
+        (current, total, stage) => {
+          setStatus(`${stage}: ${current}/${total} (${Math.round((current / total) * 100)}%)`);
+        }
+      );
+
+      setTreesWithElevation(treesWithZ);
+      
+      const treesWithElevation = treesWithZ.filter(t => t.z !== undefined).length;
+      setStatus(`✅ Ready: ${totalTrees} trees (${treesWithElevation} with elevation)`);
+      
+      console.log('Trees with elevations:', treesWithZ);
     } catch (err) {
       console.error("Tree detection failed:", err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -133,10 +192,19 @@ export function useTreePipeline() {
   const reset = (): void => {
     setDetectionResult(null);
     setModelResult(null);
+    setTreesWithElevation(null);
     setStatus("");
     setIsDetecting(false);
     setIsGeneratingModel(false);
     console.log('Pipeline reset');
+  };
+
+  /**
+   * Handle elevation detection results
+   */
+  const handleElevationsDetected = (trees: TreeWithElevation[]): void => {
+    setTreesWithElevation(trees);
+    console.log('Elevations updated in pipeline:', trees);
   };
 
   return {
@@ -148,6 +216,7 @@ export function useTreePipeline() {
     modelResult,
     isDetecting,
     isGeneratingModel,
+    treesWithElevation,
 
     // Actions
     detectTreesInTile,
@@ -155,6 +224,7 @@ export function useTreePipeline() {
     reset,
     setHsvThresholds,
     setDetectionParams,
-    setStatus
+    setStatus,
+    handleElevationsDetected
   };
 }

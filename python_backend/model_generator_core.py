@@ -157,7 +157,7 @@ def generate_obj_content(
             # No Y-flip needed since rotation already handled orientation
             x = rotated_x + (tree['x'] - tile_center_x)
             y = rotated_y  # Height above ground (what was Z)
-            z = rotated_z + (tree['y'] - tile_center_z)  # Direct position, no flip
+            z = rotated_z + ( tile_center_z - tree['y'])  # Direct position, no flip
             
             obj_lines.append(f"v {x} {y} {z}")
         

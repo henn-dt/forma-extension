@@ -98,12 +98,19 @@ def detect_trees_in_image(
         
         cx_px = int(M["m10"] / M["m00"])
         cy_px = int(M["m01"] / M["m00"])
+        
+        # 🔧 FIX: Flip Y-axis for Forma coordinate system
+        # Image coords: Y increases downward (top-left origin)
+        # Forma coords: Y increases upward (bottom-left origin)
+        cy_px_flipped = height - cy_px
+        
         cx_m = cx_px * meters_per_pixel_x
-        cy_m = cy_px * meters_per_pixel_y
+        cy_m = cy_px_flipped * meters_per_pixel_y  # Use flipped Y for meters
         
         # Get polygon points
         polygon_px = contour.reshape(-1, 2).tolist()
-        polygon_m = [[p[0] * meters_per_pixel_x, p[1] * meters_per_pixel_y] for p in polygon_px]
+        # Flip Y-coordinate for each polygon point
+        polygon_m = [[p[0] * meters_per_pixel_x, (height - p[1]) * meters_per_pixel_y] for p in polygon_px]
         
         # Classify as individual tree or cluster
         if area_m2 > cluster_area_m2:
@@ -114,7 +121,8 @@ def detect_trees_in_image(
                 meters_per_pixel_x,
                 meters_per_pixel_y,
                 detection_params["min_diameter"],
-                detection_params["max_diameter"]
+                detection_params["max_diameter"],
+                height
             )
             
             tree_clusters.append({
@@ -174,7 +182,8 @@ def populate_cluster(
     meters_per_pixel_x: float,
     meters_per_pixel_y: float,
     min_diameter: float,
-    max_diameter: float
+    max_diameter: float,
+    height: int
 ) -> List[Dict[str, Any]]:
     """
     Distribute individual trees within a cluster polygon using Poisson disk sampling.
@@ -186,6 +195,7 @@ def populate_cluster(
         meters_per_pixel_y: Vertical scale factor
         min_diameter: Minimum tree diameter in meters
         max_diameter: Maximum tree diameter in meters
+        height: Image height in pixels (for Y-axis flip)
     
     Returns:
         List of populated tree dictionaries
@@ -234,8 +244,9 @@ def populate_cluster(
         if too_close:
             continue
         
-        # Add tree with random diameter
-        position_m = [test_x * meters_per_pixel_x, test_y * meters_per_pixel_y]
+        # 🔧 FIX: Flip Y-axis for Forma coordinate system (same as main detection loop)
+        test_y_flipped = height - test_y
+        position_m = [test_x * meters_per_pixel_x, test_y_flipped * meters_per_pixel_y]
         diameter_m = np.random.uniform(min_diameter, max_diameter)
         
         populated_trees.append({
