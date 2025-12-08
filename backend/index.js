@@ -5,6 +5,11 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const FormData = require('form-data');
+const passport = require('passport');
+const flash = require('express-flash');
+const session = require('express-session');
+const methodOverride = require('method-override');
+const argon2 = require('argon2');
 
 // Load environment variables from parent directory
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
@@ -20,20 +25,43 @@ const upload = multer({
 });
 
 // Middleware
-app.use(cors());
+// Allow requests from both Vite dev server and same-origin (when served from Express)
+// Also handle Forma iframe which might send no origin or a different origin
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (same-origin, curl, Postman, etc.)
+    // Also allow localhost on any port for development
+    if (!origin || origin.startsWith('http://localhost')) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Be permissive in dev - tighten for production
+    }
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image data
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Create directories if they don't exist
+// Setup authentication BEFORE static files so session is available
+const setupAuth = require('./auth-setup');
+setupAuth(app);
+
+// Serve static files from public folder (login.html, welcome.html, etc.)
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Directory paths (used for legacy tile saving - now tiles are downloaded directly by user)
 const TILES_DIR = path.join(__dirname, '../fetched_tiles');
 const SEGMENTATION_DIR = path.join(__dirname, '../segmentation_output');
 
-if (!fs.existsSync(TILES_DIR)) {
-  fs.mkdirSync(TILES_DIR, { recursive: true });
-}
-
-if (!fs.existsSync(SEGMENTATION_DIR)) {
-  fs.mkdirSync(SEGMENTATION_DIR, { recursive: true });
+// Only create directories in non-Docker environments (local development)
+// In Docker, these are not needed as tiles are downloaded to user's browser
+if (process.env.NODE_ENV !== 'production') {
+  if (!fs.existsSync(TILES_DIR)) {
+    fs.mkdirSync(TILES_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(SEGMENTATION_DIR)) {
+    fs.mkdirSync(SEGMENTATION_DIR, { recursive: true });
+  }
 }
 
 // Health check endpoint - checks both Express and Python
@@ -757,6 +785,192 @@ app.post('/api/update-tokens', (req, res) => {
     res.status(500).json({ error: 'Failed to update tokens', message: error.message });
   }
 });
+
+// ==================== AUTH ROUTES ====================
+const { router: authRouter, checkAuthenticated } = require('./routes/auth');
+app.use('/api', authRouter);
+// ==================== DIRECTUS PROXY ROUTES (Protected) ====================
+const directusService = require('./services/directus');
+
+// ==================== FORMA PROJECT SYNC ENDPOINTS ====================
+
+/**
+ * POST /api/forma-project/sync
+ * Called when user clicks "Get Project Info" - syncs project to Directus
+ * Body: { formaProjectId, name, coordinates: [lon, lat], size: "4951m × 4886m" }
+ */
+app.post('/api/forma-project/sync', checkAuthenticated, async (req, res) => {
+  try {
+    const { formaProjectId, name, coordinates, size } = req.body;
+
+    if (!formaProjectId) {
+      return res.status(400).json({ error: 'formaProjectId is required' });
+    }
+
+    console.log('=== SYNCING FORMA PROJECT ===');
+    console.log('Forma Project ID:', formaProjectId);
+    console.log('Project Name:', name);
+    console.log('User:', req.user.email);
+    console.log('Coordinates:', coordinates);
+    console.log('Size:', size);
+
+    // Get user's Directus ID
+    const user = await directusService.getUserByEmail(req.user.email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in Directus' });
+    }
+
+    // Upsert project and link user
+    const result = await directusService.upsertProject(
+      { formaProjectId, name, coordinates, size },
+      user.id
+    );
+
+    console.log('✅ Project sync result:', {
+      projectId: result.project?.id,
+      isNew: result.isNew,
+      userLinked: result.userLinked
+    });
+
+    res.json({
+      success: true,
+      project: result.project,
+      isNew: result.isNew,
+      userLinked: result.userLinked,
+      message: result.isNew 
+        ? 'New project created and linked to user' 
+        : 'Existing project linked to user'
+    });
+
+  } catch (error) {
+    console.error('❌ Error syncing Forma project:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/forma-project/check/:formaProjectId
+ * Check if a Forma project exists in Directus
+ */
+app.get('/api/forma-project/check/:formaProjectId', checkAuthenticated, async (req, res) => {
+  try {
+    const { formaProjectId } = req.params;
+    const project = await directusService.getProjectByFormaId(formaProjectId);
+
+    res.json({
+      exists: !!project,
+      project: project || null
+    });
+
+  } catch (error) {
+    console.error('Error checking project:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/my-projects
+ * Get all projects for the authenticated user
+ */
+app.get('/api/my-projects', checkAuthenticated, async (req, res) => {
+  try {
+    console.log('=== FETCHING USER PROJECTS ===');
+    console.log('User:', req.user.email);
+
+    const projects = await directusService.getUserProjects(req.user.email);
+
+    console.log('✅ Found', projects.length, 'projects for user');
+
+    res.json({
+      success: true,
+      projects: projects,
+      count: projects.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching user projects:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== LEGACY DIRECTUS PROJECT ROUTES ====================
+
+// Get projects for user
+app.get('/api/directus/projects', checkAuthenticated, async (req, res) => {
+  try {
+    const projects = await directusService.getUserProjects(req.user.email);
+    res.json(projects);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create project
+app.post('/api/directus/projects', checkAuthenticated, async (req, res) => {
+  try {
+    const project = await directusService.createProject(req.body);
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single project
+app.get('/api/directus/projects/:id', checkAuthenticated, async (req, res) => {
+  try {
+    const project = await directusService.getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update project
+app.patch('/api/directus/projects/:id', checkAuthenticated, async (req, res) => {
+  try {
+    const project = await directusService.updateProject(req.params.id, req.body);
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete project
+app.delete('/api/directus/projects/:id', checkAuthenticated, async (req, res) => {
+  try {
+    await directusService.deleteProject(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== SERVE REACT APP ====================
+// Serve built React app from dist folder (for production-like setup)
+// This must come AFTER all API routes
+// In Docker, dist is at /app/dist (same folder as index.js)
+// In local dev, dist is at ../dist (parent folder)
+const distPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, 'dist')      // Docker: /app/dist
+  : path.join(__dirname, '../dist');  // Local: ../dist
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  
+  // For any route that's not an API or static file, serve the React app
+  // This enables client-side routing
+  app.get('*', (req, res, next) => {
+    // Don't serve index.html for API routes or existing static files
+    if (req.path.startsWith('/api') || req.path.endsWith('.html')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+  
+  console.log('✅ Serving React app from dist/');
+} else {
+  console.log('⚠️ dist/ folder not found. Run "npm run build" to build the React app.');
+}
 
 const HOST = '0.0.0.0';              // <— add this
 app.listen(PORT, HOST, () => {       // <— bind to 0.0.0.0

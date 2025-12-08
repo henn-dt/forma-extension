@@ -2,10 +2,55 @@ import { useState } from 'react';
 import type { BBox } from '../types/geometry.types';
 import type { Project } from '../types/forma.types';
 
+// SVG Icons for directional arrows
+const ArrowUpIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+    <path d="M12 19V5M5 12l7-7 7 7"/>
+  </svg>
+);
+
+const ArrowDownIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+    <path d="M12 5v14M5 12l7 7 7-7"/>
+  </svg>
+);
+
+const ArrowLeftIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+    <path d="M19 12H5M12 5l-7 7 7 7"/>
+  </svg>
+);
+
+const ArrowRightIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+    <path d="M5 12h14M12 5l7 7-7 7"/>
+  </svg>
+);
+
+const GlobeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+);
+
+const LoadingIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle', animation: 'spin 1s linear infinite' }}>
+    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+  </svg>
+);
+
+const InfoIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M12 16v-4M12 8h.01"/>
+  </svg>
+);
+
 interface ExtendProjectPanelProps {
   bbox: BBox | null;
   projectData: Project | null;
-  onFetchExtended: (extensions: { north: number; west: number; east: number; south: number }) => Promise<void>;
+  onFetchExtended: (extensions: { north: number; west: number; east: number; south: number }) => void | Promise<void>;
   isLoading: boolean;
 }
 
@@ -38,6 +83,12 @@ export function ExtendProjectPanel({
 
   return (
     <div className="section">
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <h3>Extend Project Boundaries</h3>
       <p className="help-text" style={{ marginBottom: '15px' }}>
         Extend the project boundaries to fetch a larger satellite tile. 
@@ -46,7 +97,9 @@ export function ExtendProjectPanel({
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px' }}>
         <label style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ marginBottom: '5px', fontWeight: 'bold' }}>⬆️ Extend North (m):</span>
+          <span style={{ marginBottom: '5px', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+            <ArrowUpIcon /> Extend North (m):
+          </span>
           <input 
             type="number" 
             value={extendNorth} 
@@ -59,7 +112,9 @@ export function ExtendProjectPanel({
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ marginBottom: '5px', fontWeight: 'bold' }}>➡️ Extend East (m):</span>
+          <span style={{ marginBottom: '5px', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+            <ArrowRightIcon /> Extend East (m):
+          </span>
           <input 
             type="number" 
             value={extendEast} 
@@ -72,7 +127,9 @@ export function ExtendProjectPanel({
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ marginBottom: '5px', fontWeight: 'bold' }}>⬅️ Extend West (m):</span>
+          <span style={{ marginBottom: '5px', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+            <ArrowLeftIcon /> Extend West (m):
+          </span>
           <input 
             type="number" 
             value={extendWest} 
@@ -85,7 +142,9 @@ export function ExtendProjectPanel({
         </label>
 
         <label style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ marginBottom: '5px', fontWeight: 'bold' }}>⬇️ Extend South (m):</span>
+          <span style={{ marginBottom: '5px', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+            <ArrowDownIcon /> Extend South (m):
+          </span>
           <input 
             type="number" 
             value={extendSouth} 
@@ -131,15 +190,22 @@ export function ExtendProjectPanel({
           fontSize: '1.1em',
           backgroundColor: '#2196F3',
           color: 'white',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
-        {isLoading ? '⏳ Fetching...' : '🌍 Fetch Extended Tile'}
+        {isLoading ? (
+          <><LoadingIcon /> Fetching...</>
+        ) : (
+          <><GlobeIcon /> Fetch Extended Tile</>
+        )}
       </button>
 
       {!bbox && (
-        <p className="help-text" style={{ marginTop: '10px', color: '#ff6b6b' }}>
-          ⬅️ Please fetch project info and terrain bounds first using the "Project Tile" tab.
+        <p className="help-text" style={{ marginTop: '10px', color: '#ff6b6b', display: 'flex', alignItems: 'center' }}>
+          <InfoIcon /> Please fetch project info and terrain bounds first using the "Project Tile" tab.
         </p>
       )}
     </div>

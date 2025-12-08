@@ -97,7 +97,7 @@ button:disabled {
   padding: 20px;
   background: #fff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  
+
   /* Fixed width for consistent positioning */
   width: calc(100% - 40px);
   max-width: 1000px;
@@ -126,8 +126,10 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  min-width: 0; /* Prevent overflow */
-  overflow: hidden; /* Contain content */
+  min-width: 0;
+  /* Prevent overflow */
+  overflow: hidden;
+  /* Contain content */
 }
 
 .image-display {
@@ -146,12 +148,12 @@ button:disabled {
   .content-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .box {
     padding-left: 8px;
     padding-right: 8px;
   }
-  
+
   .panel {
     padding-left: 8px;
     padding-right: 8px;
@@ -267,7 +269,7 @@ h4 {
 /* Specific shadow colors for each tab */
 .tabs button:first-child {
   /* Satellite tile button - deep blue shadow */
-  box-shadow: 0 2px 8px rgba(0, 0, 0  , 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .tabs button:first-child:hover:not(:disabled),

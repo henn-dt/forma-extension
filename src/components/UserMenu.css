@@ -1,0 +1,200 @@
+/* User Menu Component Styles */
+
+.user-menu {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.logo-icon {
+  width: 50px;
+  height: 50px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+  background: white;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.logo-icon:hover {
+  transform: scale(1.05);
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 60px;
+  left: 0;
+  background: white;
+  border: 2px solid #000;
+  border-radius: 8px;
+  min-width: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+/* Menu Items */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  color: #1a1a1a;
+  background: white;
+  border: none;
+  font-family: "NB Grotesk", -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.menu-item.active {
+  background-color: #e8f5e9;
+  font-weight: 600;
+}
+
+.menu-item svg {
+  flex-shrink: 0;
+  color: #333;
+}
+
+/* User Info Panel (expandable) */
+.user-info-panel {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+.user-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.user-info-row .info-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.user-info-row .info-value {
+  font-size: 12px;
+  color: #1a1a1a;
+  text-align: right;
+  word-break: break-all;
+  max-width: 140px;
+}
+
+/* Logout Item */
+.menu-item.logout-item {
+  color: #c0392b;
+}
+
+.menu-item.logout-item:hover {
+  background-color: #fee;
+}
+
+.menu-item.logout-item svg {
+  color: #c0392b;
+}
+
+/* Menu Divider */
+.menu-divider {
+  height: 1px;
+  background: #eee;
+  margin: 0;
+}
+
+/* Legacy styles for backwards compatibility */
+.user-info-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+}
+
+.user-info-section svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #666;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+.user-email {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  color: #c0392b;
+  background: white;
+  border: none;
+  font-family: "NB Grotesk", -apple-system, "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #fee;
+}
+
+.logout-btn svg {
+  flex-shrink: 0;
+  color: #c0392b;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .user-menu {
+    top: 10px;
+    left: 10px;
+  }
+
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .dropdown-menu {
+    top: 50px;
+    min-width: 200px;
+  }
+}

@@ -5,7 +5,6 @@ import type { Project } from '../types/forma.types';
 import type { MapboxData } from '../types/mapbox.types';
 import { fetchAndStitchRasterTiles } from '../services/mapboxTile.service';
 import { warpImageToUTM } from '../services/imageWarping.service';
-import { saveTile } from '../services/backend.service';
 import { calculateImageDimensions, calculateOptimalZoom } from '../utils/zoomCalculations.utils';
 import { transformBboxCorrectly } from '../utils/coordinateTransform.utils';
 import { lon2tile, lat2tile } from '../utils/tileCalculations.utils';
@@ -22,7 +21,7 @@ export function useMapboxTile() {
 
   const fetchTile = async (bbox: BBox, projectData: Project) => {
     setIsFetchingTile(true);
-    setStatus("Generating and warping Mapbox tile...");
+    setStatus("Generating Mapbox tile... This might take a couple of minutes ⏳");
     try {
       // 1. Calculate UTM image dimensions
       const utmDimensions = calculateImageDimensions(bbox);
@@ -54,7 +53,7 @@ export function useMapboxTile() {
       console.log(`Using zoom level ${optimalZoom} for ${bboxMeters.width.toFixed(0)}×${bboxMeters.height.toFixed(0)}m bbox`);
       
       // 4. Fetch and stitch raster tiles
-      setStatus(`Fetching tiles at zoom ${optimalZoom}...`);
+      setStatus(`Fetching tiles at zoom ${optimalZoom}... This might take a couple of minutes ⏳`);
       const blobUrl = await fetchAndStitchRasterTiles(bboxLatLon, optimalZoom, outputDimensions);
       
       console.log('Tiles stitched and cropped to bbox');
@@ -116,29 +115,36 @@ export function useMapboxTile() {
     }
   };
 
-  const saveTileToBackend = async (projectId: string | null) => {
+  // Download tile image to user's local Downloads folder
+  const downloadTileImage = (projectId: string | null) => {
     if (!mapboxData || !mapboxData.url) {
-      setStatus("No tile to save ❌");
+      setStatus("No tile to download ❌");
       return;
     }
 
-    setStatus("Saving tile to backend...");
+    setStatus("Preparing download...");
     try {
-      const result = await saveTile({
-        imageUrl: mapboxData.url,
-        projectId: projectId,
-        zoom: mapboxData.zoom,
-        bbox: mapboxData.bbox,
-        center: mapboxData.center
-      });
+      // Create a timestamp for the filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const filename = `satellite_tile_${projectId || 'unknown'}_${timestamp}.png`;
       
-      setStatus(`Tile saved: ${result.filename} ✔`);
-      console.log('Save result:', result);
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = mapboxData.url;
+      link.download = filename;
+      
+      // Trigger the download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setStatus(`Tile downloaded: ${filename} ✔`);
+      console.log('Downloaded tile:', filename);
       
       setTimeout(() => setStatus(""), 3000);
     } catch (err) {
-      console.error("Failed to save tile:", err);
-      setStatus(`Error saving tile ❌`);
+      console.error("Failed to download tile:", err);
+      setStatus(`Error downloading tile ❌`);
     }
   };
 
@@ -148,7 +154,7 @@ export function useMapboxTile() {
     extensions: { north: number; west: number; east: number; south: number }
   ) => {
     setIsExtendedTileLoading(true);
-    setStatus("Generating extended tile...");
+    setStatus("Generating extended tile... This might take a couple of minutes ⏳");
     
     try {
       // Calculate extended UTM bbox
@@ -189,7 +195,7 @@ export function useMapboxTile() {
       console.log(`Extended tile: zoom ${optimalZoom} for ${bboxMeters.width.toFixed(0)}×${bboxMeters.height.toFixed(0)}m bbox`);
       
       // 4. Fetch and stitch raster tiles
-      setStatus(`Fetching extended tiles at zoom ${optimalZoom}...`);
+      setStatus(`Fetching extended tiles at zoom ${optimalZoom}... This might take a couple of minutes ⏳`);
       const blobUrl = await fetchAndStitchRasterTiles(bboxLatLon, optimalZoom, outputDimensions);
       
       // 5. Calculate corner pixel positions
@@ -250,7 +256,7 @@ export function useMapboxTile() {
     isFetchingTile,
     fetchTile,
     fetchExtendedTile,
-    saveTileToBackend,
+    downloadTileImage,
     setStatus
   };
 }

@@ -15,6 +15,7 @@
 .env
 .env.*
 !.env.example
+!backend/.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -99,6 +100,13 @@ rootUrn2.json
 tree-blobid-cache.json
 tree-blobid-result.json
 Example
+auth_repo
+failed_auth
+public/test-auth.html
+public/test-full-auth.html
+.directus-template-cli/
+my-directus-project/
+src/services/email.js
 
 # Docker
 .dockerignore

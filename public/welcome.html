@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HENN - Welcome</title>
+    <style>
+        @font-face {
+            font-family: 'NB Grotesk';
+            src: url('/fonts/NBGROTESK-REGULAR.OTF') format('opentype');
+            font-weight: normal;
+        }
+
+        @font-face {
+            font-family: 'NB Grotesk';
+            src: url('/fonts/NBGROTESK-BOLD.OTF') format('opentype');
+            font-weight: bold;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'NB Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .welcome-container {
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+        }
+
+        .logo {
+            width: 120px;
+            margin-bottom: 40px;
+            filter: brightness(0) invert(1);
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 16px;
+            font-weight: bold;
+        }
+
+        .user-name {
+            color: #f5510a;
+        }
+
+        p {
+            font-size: 18px;
+            color: #ccc;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 16px 48px;
+            background: #f5510a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.1s;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: #d94609;
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .logout-link {
+            margin-top: 40px;
+            font-size: 14px;
+        }
+
+        .logout-link a {
+            color: #f5510a;
+            text-decoration: none;
+        }
+
+        .logout-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="welcome-container">
+        <img src="/logo-HENN.png" alt="HENN Logo" class="logo">
+
+        <div id="content">
+            <h1>Welcome<span id="userName" class="user-name"></span>!</h1>
+            <p>We are glad to have you here.</p>
+            <a href="#" class="btn" id="goToProjectBtn">Go to Project</a>
+
+            <div class="logout-link">
+                <a href="#" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get user info using JWT token
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            fetch('/api/user', { 
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.authenticated && data.user?.name) {
+                        document.getElementById('userName').textContent = ' ' + data.user.name;
+                    }
+                })
+                .catch(err => console.error('Failed to fetch user:', err));
+        }
+
+        // Go to Project handler - preserve Forma's query parameters
+        document.getElementById('goToProjectBtn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            const queryString = window.location.search;
+            console.log('Going to project with params:', queryString);
+            window.location.href = '/' + queryString;
+        });
+
+        // Logout handler
+        document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const token = localStorage.getItem('authToken');
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                });
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+            // Clear local storage
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
+            // Preserve query params for login page too
+            const queryString = window.location.search;
+            window.location.href = '/login.html' + queryString;
+        });
+    </script>
+</body>
+
+</html>

@@ -13,6 +13,8 @@ import { ProjectInfoPanel } from './components/ProjectInfoPanel';
 import { TerrainBoundsPanel } from './components/TerrainBoundsPanel';
 import { MapboxTilePanel } from './components/MapboxTilePanel';
 import { ExtendProjectPanel } from './components/ExtendProjectPanel';
+import { UserMenu } from './components/UserMenu';
+import { MyProjectsPage } from './components/MyProjectsPage';
 
 // Component imports - Phase 2.4 Tree Detection UI
 import { HSVControlPanel } from './components/HSVControlPanel';
@@ -20,13 +22,18 @@ import { DetectionParametersPanel } from './components/DetectionParametersPanel'
 import { TreeDetectionPreview } from './components/TreeDetectionPreview';
 import { TreeListPanel } from './components/TreeListPanel';
 import { ModelResultPanel } from './components/ModelResultPanel';
-import { TreeElevationDetector } from './components/TreeElevationDetector';
 import { TreePlacementTester } from './components/TreePlacementTester';
 
 // Utility imports for copyJSON function
 import { calculateArea, calculateDimensions } from './utils/geometry.utils';
 
+// Page type for navigation
+type AppPage = 'home' | 'projects';
+
 function App() {
+  // Page navigation state
+  const [currentPage, setCurrentPage] = useState<AppPage>('home');
+
   // Tab state - Phase 2.5
   const [activeTab, setActiveTab] = useState<'project' | 'extend' | 'trees'>('project');
 
@@ -110,30 +117,55 @@ function App() {
   };
 
   return (
-    <div className="panel">
+    <>
+      {/* User Menu - Top Left */}
+      <UserMenu 
+        currentPage={currentPage} 
+        onNavigate={(page) => setCurrentPage(page)} 
+      />
+      
+      {/* Conditional Page Rendering */}
+      {currentPage === 'projects' ? (
+        <MyProjectsPage onNavigateHome={() => setCurrentPage('home')} />
+      ) : (
+      <div className="panel">
       <h2>Forma Tree Detection</h2>
 
-      {/* Tab Navigation - Phase 2.5 */}
+      {/* Tab Navigation */}
       <div className="tabs">
         <button 
           className={activeTab === 'project' ? 'active' : ''}
           onClick={() => setActiveTab('project')}
         >
-          🛰️ Project Tile
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          Project Tile
         </button>
         <button 
           className={activeTab === 'extend' ? 'active' : ''}
           onClick={() => setActiveTab('extend')}
           disabled={!formaProject.bbox || !formaProject.projectData}
         >
-          🧭 Extend Project
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+          Extend Project
         </button>
         <button 
           className={activeTab === 'trees' ? 'active' : ''}
           onClick={() => setActiveTab('trees')}
           disabled={!mapboxTile.mapboxData}
         >
-          🌳 Tree Detection
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+            <path d="M12 2L8 8h8L12 2z"/>
+            <path d="M12 8L7 16h10L12 8z"/>
+            <path d="M12 16v6"/>
+          </svg>
+          Tree Detection
         </button>
       </div>
 
@@ -145,13 +177,11 @@ function App() {
           <>
             <ActionButtons
               onGetProjectInfo={formaProject.fetchProjectInfo}
-              onGetBbox={formaProject.fetchBbox}
               onFetchTile={handleFetchTile}
               bbox={formaProject.bbox}
               location={formaProject.location}
               projectData={formaProject.projectData}
               isLoadingInfo={formaProject.isLoadingProjectInfo}
-              isLoadingBbox={formaProject.isLoadingBbox}
               isLoadingTile={mapboxTile.isFetchingTile}
             />
 
@@ -176,7 +206,7 @@ function App() {
                     <MapboxTilePanel
                       mapboxData={mapboxTile.mapboxData}
                       onCopyJSON={copyMapboxJSON}
-                      onSaveTile={() => mapboxTile.saveTileToBackend(formaProject.projectId)}
+                      onDownloadTile={() => mapboxTile.downloadTileImage(formaProject.projectId)}
                     />
                     
                     <img 
@@ -284,8 +314,25 @@ function App() {
                 {mapboxTile.extendedTileData && (
                   <div className="section" style={{ background: '#e3f2fd', padding: '15px', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '1.05em' }}>
-                        {useExtendedTile ? '🧭 Using Extended Tile' : '🗺️ Using Project Tile'}
+                      <span style={{ fontWeight: 'bold', fontSize: '1.05em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {useExtendedTile ? (
+                          <>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <circle cx="12" cy="12" r="10"/>
+                              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                            </svg>
+                            Using Extended Tile
+                          </>
+                        ) : (
+                          <>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                              <line x1="3" y1="9" x2="21" y2="9"/>
+                              <line x1="9" y1="21" x2="9" y2="9"/>
+                            </svg>
+                            Using Project Tile
+                          </>
+                        )}
                       </span>
                       
                       {/* Toggle Switch */}
@@ -381,9 +428,24 @@ function App() {
                           }}
                           disabled={treePipeline.isDetecting}
                           className="btn btn-primary"
-                          style={{ fontSize: '1.1em', padding: '12px 30px' }}
+                          style={{ fontSize: '1.1em', padding: '12px 30px', display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
-                          {treePipeline.isDetecting ? '⏳ Detecting Trees...' : '🔍 Detect Trees'}
+                          {treePipeline.isDetecting ? (
+                            <>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+                              </svg>
+                              Detecting Trees...
+                            </>
+                          ) : (
+                            <>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                              </svg>
+                              Detect Trees
+                            </>
+                          )}
                         </button>
                       </div>
 
@@ -400,44 +462,13 @@ function App() {
                             treesWithElevation={treePipeline.treesWithElevation}
                           />
                           
-                          {/* Elevation Detection - NEW */}
-                          {formaProject.projectData && (() => {
-                            const detectionResult = treePipeline.detectionResult!;
-                            const allTrees = [
-                              ...detectionResult.individualTrees.map((t, idx) => ({
-                                x: t.centroidM[0],
-                                y: t.centroidM[1],
-                                tree_id: idx,
-                                type: 'individual',
-                                estimatedDiameterM: t.estimatedDiameterM
-                              })),
-                              ...detectionResult.treeClusters.flatMap(cluster =>
-                                cluster.populatedTrees.map(t => ({
-                                  x: t.positionM[0],
-                                  y: t.positionM[1],
-                                  type: 'populated',
-                                  estimatedDiameterM: t.estimatedDiameterM
-                                }))
-                              )
-                            ];
-                            
-                            return (
-                              <div className="section" style={{ marginTop: '10px' }}>
-                                <TreeElevationDetector
-                                  detectedTrees={allTrees}
-                                  projectData={formaProject.projectData}
-                                  onElevationsDetected={treePipeline.handleElevationsDetected}
-                                  onStatusUpdate={treePipeline.setStatus}
-                                />
-                                
-                                {treePipeline.treesWithElevation && treePipeline.treesWithElevation.length > 0 && (
-                                  <TreePlacementTester
-                                    treesWithElevation={treePipeline.treesWithElevation}
-                                  />
-                                )}
-                              </div>
-                            );
-                          })()}
+                          {/* Tree Placement - shows when trees with elevation are ready */}
+                          {treePipeline.treesWithElevation && treePipeline.treesWithElevation.length > 0 && (
+                            <TreePlacementTester
+                              treesWithElevation={treePipeline.treesWithElevation}
+                              disablePlacement={useExtendedTile}
+                            />
+                          )}
                         </>
                       )}
 
@@ -451,14 +482,22 @@ function App() {
             ) : (
               <div className="section">
                 <p className="help-text">
-                  ⬅️ Please fetch a satellite tile first using the "Project Tile" or "Extend Project" tab.
+                  Please fetch a satellite tile first using the "Project Tile" or "Extend Project" tab.
                 </p>
               </div>
             )}
           </>
         )}
       </div>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
+      )}
+    </>
   );
 }
 

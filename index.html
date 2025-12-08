@@ -1,12 +1,123 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Forma Extension - Terrain Bbox</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forma Extension - Terrain Bbox</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a1a;
+      color: white;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .auth-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .auth-loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #9cff80;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+
+<body>
+  <!-- Loading state while checking auth -->
+  <div id="auth-loading" class="auth-loading">
+    <div class="spinner"></div>
+    <div>Checking authentication...</div>
+  </div>
+  
+  <!-- React app root (hidden until authenticated) -->
+  <div id="root" class="hidden"></div>
+  
+  <!-- 
+    This script is processed by Vite during build.
+    We add a small auth-check wrapper that runs before React initializes.
+  -->
+  <script type="module">
+    // Check authentication using JWT token stored in localStorage
+    async function checkAuthAndLoadApp() {
+      const loadingEl = document.getElementById('auth-loading');
+      const rootEl = document.getElementById('root');
+      
+      // Preserve Forma's query parameters for redirects
+      const queryString = window.location.search;
+      
+      try {
+        console.log('Checking authentication...');
+        
+        // Get token from localStorage
+        const token = localStorage.getItem('authToken');
+        
+        if (!token) {
+          console.log('No token found, redirecting to login');
+          window.location.href = '/login.html' + queryString;
+          return;
+        }
+        
+        // Verify token with backend
+        const res = await fetch('/api/user', { 
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        console.log('Auth check response status:', res.status);
+        
+        const data = await res.json();
+        console.log('Auth check data:', data);
+        
+        if (!data.authenticated) {
+          console.log('Token invalid or expired, redirecting to login');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUser');
+          window.location.href = '/login.html' + queryString;
+          return;
+        }
+        
+        // User is authenticated - store user info for React to access
+        console.log('Authenticated as:', data.user);
+        window.__AUTH_USER__ = data.user;
+        window.__AUTH_TOKEN__ = token; // Make token available to React
+        
+        // Hide loading, show root
+        loadingEl.classList.add('hidden');
+        rootEl.classList.remove('hidden');
+        
+        // Now dynamically import the React app
+        await import('/src/main.tsx');
+        
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        loadingEl.innerHTML = `
+          <div style="color: #ff6b6b; margin-bottom: 16px;">
+            Connection error: ${err.message}
+          </div>
+          <button onclick="window.location.reload()" style="background: #9cff80; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+            Retry
+          </button>
+          <a href="/login.html${queryString}" style="color: #9cff80; margin-top: 16px;">
+            Go to Login
+          </a>
+        `;
+      }
+    }
+    
+    checkAuthAndLoadApp();
+  </script>
+</body>
+
 </html>

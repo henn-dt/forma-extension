@@ -7,6 +7,9 @@ import type { TreeDetectionResult } from '../types/treeDetection.types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+// Height multiplier matching Python backend
+const HEIGHT_MULTIPLIER = 1.5;
+
 interface TreeListPanelProps {
   detectionResult: TreeDetectionResult;
   treesWithElevation?: Array<{
@@ -17,6 +20,13 @@ interface TreeListPanelProps {
     type?: string;
     [key: string]: unknown;
   }> | null;
+}
+
+/**
+ * Calculate tree height from diameter (same formula as Python backend)
+ */
+function calculateTreeHeight(diameterM: number): number {
+  return diameterM * HEIGHT_MULTIPLIER;
 }
 
 export function TreeListPanel({ 
@@ -43,6 +53,7 @@ export function TreeListPanel({
         type: 'Individual' as const,
         position: tree.centroidM,
         diameter: tree.estimatedDiameterM,
+        height: calculateTreeHeight(tree.estimatedDiameterM),
         area: tree.areaM2,
         elevation: elevationMap.get(key)
       };
@@ -55,6 +66,7 @@ export function TreeListPanel({
           type: 'Populated' as const,
           position: tree.positionM,
           diameter: tree.estimatedDiameterM,
+          height: calculateTreeHeight(tree.estimatedDiameterM),
           area: 0,
           elevation: elevationMap.get(key)
         };
@@ -205,7 +217,14 @@ export function TreeListPanel({
   return (
     <div className="section">
       <div className="tree-list-header">
-        <h3>Detected Trees ({allTrees.length})</h3>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2L8 8h8L12 2z"/>
+            <path d="M12 8L7 16h10L12 8z"/>
+            <path d="M12 16v6"/>
+          </svg>
+          Detected Trees ({allTrees.length})
+        </h3>
         <div style={{ 
           display: 'flex', 
           gap: '0.5rem',
@@ -219,10 +238,30 @@ export function TreeListPanel({
             title="Download 3D model as OBJ file for Rhino, Blender, etc."
             style={{ 
               flex: '1',
-              minWidth: '140px'
+              minWidth: '140px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
             }}
           >
-            {isDownloadingOBJ ? '⏳ Downloading...' : '📦 Download OBJ'}
+            {isDownloadingOBJ ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+                </svg>
+                Downloading...
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                  <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+                Download OBJ
+              </>
+            )}
           </button>
           <button
             onClick={handleDownloadJSON}
@@ -231,13 +270,40 @@ export function TreeListPanel({
             title="Download tree positions for Forma placement (includes elevation data)"
             style={{ 
               flex: '1',
-              minWidth: '140px'
+              minWidth: '140px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
             }}
           >
-            {isDownloadingJSON ? '⏳ Downloading...' : '📥 Download for Placement'}
+            {isDownloadingJSON ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="8"/>
+                </svg>
+                Downloading...
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download JSON for Placement
+              </>
+            )}
           </button>
         </div>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
 
       <div className="tree-list">
         <table>
@@ -246,7 +312,7 @@ export function TreeListPanel({
               <th>Type</th>
               <th>Position (m)</th>
               <th>Diameter (m)</th>
-              <th>Area (m²)</th>
+              <th>Height (m)</th>
               <th>Elevation (m)</th>
             </tr>
           </thead>
@@ -256,7 +322,11 @@ export function TreeListPanel({
                 <td>{tree.type}</td>
                 <td>{tree.position[0].toFixed(1)}, {tree.position[1].toFixed(1)}</td>
                 <td>{tree.diameter.toFixed(2)}</td>
-                <td>{tree.area > 0 ? tree.area.toFixed(2) : '-'}</td>
+                <td>
+                  <span style={{ color: '#17a2b8', fontWeight: 'bold' }}>
+                    {tree.height.toFixed(1)}
+                  </span>
+                </td>
                 <td>
                   {tree.elevation !== undefined ? (
                     <span style={{ color: '#28a745', fontWeight: 'bold' }}>

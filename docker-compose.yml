@@ -1,0 +1,97 @@
+# =============================================================================
+# Docker Compose for Local Development and Testing
+# =============================================================================
+# This file orchestrates both the Backend (Express + React) and Python API
+# containers. Use this for local testing before deploying to Azure.
+#
+# Usage:
+#   docker-compose up --build        # Build and start all services
+#   docker-compose up -d             # Start in background
+#   docker-compose logs -f           # View logs
+#   docker-compose down              # Stop all services
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Express Backend + React Frontend (Main Application)
+  # ===========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pass Mapbox token at build time for Vite to embed in frontend
+        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    container_name: forma-backend
+    ports:
+      - "3001:3001"
+    environment:
+      # Node environment
+      - NODE_ENV=production
+      - PORT=3001
+      
+      # Python API URL (internal Docker network)
+      - PYTHON_API_URL=http://python-api:5001
+      
+      # Session configuration
+      - SESSION_SECRET=${SESSION_SECRET:-forma-dev-secret-change-in-production}
+      
+      # Directus configuration (for auth) - REQUIRED: Set in .env file
+      - DIRECTUS_URL=${DIRECTUS_URL}
+      - DIRECTUS_STATIC_TOKEN=${DIRECTUS_STATIC_TOKEN:-}
+      
+      # Forma API tokens (optional - for API calls from backend)
+      - BEARER_TOKEN=${BEARER_TOKEN:-}
+      - REFRESH_TOKEN=${REFRESH_TOKEN:-}
+    
+    depends_on:
+      python-api:
+        condition: service_healthy
+    
+    networks:
+      - forma-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3001/health"]
+      interval: 600s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================================================
+  # Python FastAPI (Tree Detection & 3D Model Generation)
+  # ===========================================================================
+  python-api:
+    build:
+      context: ./python_backend
+      dockerfile: Dockerfile
+    container_name: forma-python
+    ports:
+      - "5001:5001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=5001
+    
+    networks:
+      - forma-network
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5001/health"]
+      interval: 600s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# =============================================================================
+# Docker Network
+# =============================================================================
+# Custom bridge network for container-to-container communication
+networks:
+  forma-network:
+    name: forma-network
+    driver: bridge

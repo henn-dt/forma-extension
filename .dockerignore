@@ -1,1 +1,114 @@
+# =============================================================================
+# Docker Ignore File
+# =============================================================================
+# Files and directories to exclude when building the Docker image.
+# This reduces build context size and prevents sensitive data from being
+# included in the image.
+# =============================================================================
+
+# Dependencies (will be installed fresh in container)
 node_modules
+**/node_modules
+.npm
+
+# Environment files (secrets should use environment variables)
+.env
+.env.local
+.env.*.local
+**/.env
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts (we build fresh in Docker)
+dist
+build
+
+# Python virtual environments
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+venv
+.venv
+**/venv
+**/.venv
+python_backend/venv
+python_backend/.venv
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*.sublime-*
+.project
+.settings
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test and coverage files
+*.test.js
+*.spec.js
+*.test.ts
+*.spec.ts
+coverage
+.nyc_output
+jest.config.js
+
+# Documentation (not needed in production image)
+Documentation/
+*.md
+!README.md
+docs/
+
+# Example and test files
+Example/
+failed_auth/
+
+# Local data directories (should use Docker volumes in production)
+fetched_tiles/
+segmentation_output/
+python_backend/generated_models/
+
+# Auth repo (separate deployment)
+auth_repo/
+
+# Forma token scripts (development only)
+forma_token/
+
+# Directus project (separate deployment)
+my-directus-project/
+
+# Log files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Docker files (prevent recursive inclusion)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# TypeScript build info
+*.tsbuildinfo
+
+# ESLint cache
+.eslintcache
+
+# Root URN files (development/testing)
+rootUrn*.json
