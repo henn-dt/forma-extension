@@ -356,6 +356,25 @@ The "Extend Project" feature allows coverage beyond Forma's terrain limits:
 3. Larger satellite tile is fetched and processed
 4. Trees can be detected across the entire extended area and exported as OBJ
 
+### Continuous Integration (GHCR Builds)
+
+Every push to the `main` branch now triggers `.github/workflows/build-ghcr.yml`, a GitHub Actions workflow that automatically:
+1. Builds the React/Express image from `Dockerfile`
+2. Builds the Python FastAPI image from `python_backend/Dockerfile`
+3. Tags both images (commit SHA + `latest` on main)
+4. Pushes them to GitHub Container Registry (`ghcr.io/abchai25`)
+
+#### Required Repository Secrets
+
+Add these secrets under **GitHub Repo → Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|--------|-------------|
+| `GHCR_PAT` | Personal access token with `write:packages` scope to push images to GHCR |
+| `VITE_MAPBOX_TOKEN` | Mapbox access token passed to the frontend during Docker builds |
+
+Once configured, simply `git push origin main` to publish fresh container images without any local Docker commands.
+
 ## 📁 Project Structure
 
 ```
@@ -393,6 +412,9 @@ my-react-forma/
 │   ├── Dockerfile                     # Python container
 │   ├── tree_detector_core.py          # Detection algorithm
 │   └── model_generator_core.py        # OBJ/GLB generation
+├── .github/
+│   └── workflows/
+│       └── build-ghcr.yml             # CI workflow (build & push images)
 ├── public/
 │   ├── login.html                     # Login page
 │   ├── register.html                  # Registration page
@@ -505,4 +527,4 @@ MIT License - see LICENSE file for details
 
 ---
 
-*Last Updated: December 2025*
+*Last Updated: 08 December 2025*
