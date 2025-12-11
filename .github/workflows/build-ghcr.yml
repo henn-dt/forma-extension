@@ -136,8 +136,3 @@ jobs:
           echo "| Backend | \`docker pull ${{ env.BACKEND_IMAGE }}:latest\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Python | \`docker pull ${{ env.PYTHON_IMAGE }}:latest\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "To deploy to Azure, run these commands:" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "az containerapp update --name forma-python --image ${{ env.PYTHON_IMAGE }}:latest" >> $GITHUB_STEP_SUMMARY
-          echo "az containerapp update --name forma-backend --image ${{ env.BACKEND_IMAGE }}:latest" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
