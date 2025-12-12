@@ -10,35 +10,9 @@ const flash = require('express-flash');
 const session = require('express-session');
 const methodOverride = require('method-override');
 const argon2 = require('argon2');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 
 // Load environment variables from parent directory
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
-
-// =============================================================================
-// Production Security Checks
-// =============================================================================
-const isProduction = process.env.NODE_ENV === 'production';
-if (isProduction) {
-  // Check for required environment variables
-  const requiredEnvVars = ['SESSION_SECRET', 'DIRECTUS_URL', 'DIRECTUS_STATIC_TOKEN'];
-  const missing = requiredEnvVars.filter(v => !process.env[v]);
-  if (missing.length > 0) {
-    console.error('❌ FATAL: Missing required environment variables:', missing.join(', '));
-    console.error('   Please set these in your .env file before starting in production.');
-    process.exit(1);
-  }
-  
-  // Warn if using default secrets
-  if (process.env.SESSION_SECRET?.includes('change-in-production')) {
-    console.error('❌ FATAL: Using default SESSION_SECRET in production!');
-    console.error('   Generate a secure secret: openssl rand -base64 32');
-    process.exit(1);
-  }
-  
-  console.log('✅ Production security checks passed');
-}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -95,42 +69,6 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' })); // Increase limit for base64 image data
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// =============================================================================
-// Security Middleware (Production)
-// =============================================================================
-if (process.env.NODE_ENV === 'production') {
-  // Helmet sets security-related HTTP headers
-  app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP as it may interfere with Forma iframe
-    crossOriginEmbedderPolicy: false, // Allow embedding in Forma iframe
-    crossOriginOpenerPolicy: false,
-    crossOriginResourcePolicy: false
-  }));
-  
-  // Rate limiting for authentication endpoints (prevent brute force)
-  const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 10 attempts per window
-    message: { error: 'Too many login attempts, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-  });
-  app.use('/api/login', authLimiter);
-  app.use('/api/register', authLimiter);
-  
-  // General API rate limiting
-  const apiLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 100, // 100 requests per minute
-    message: { error: 'Too many requests, please try again later' },
-    standardHeaders: true,
-    legacyHeaders: false
-  });
-  app.use('/api/', apiLimiter);
-  
-  console.log('✅ Security middleware enabled (helmet, rate limiting)');
-}
 
 // Setup authentication BEFORE static files so session is available
 const setupAuth = require('./auth-setup');
