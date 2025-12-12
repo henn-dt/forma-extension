@@ -67,12 +67,12 @@
         
         if (!token) {
           console.log('No token found, redirecting to login');
-          window.location.href = '/login.html' + queryString;
+          window.location.href = 'login.html' + queryString;
           return;
         }
         
         // Verify token with backend
-        const res = await fetch('/api/user', { 
+        const res = await fetch('api/user', { 
           headers: { 'Authorization': 'Bearer ' + token }
         });
         console.log('Auth check response status:', res.status);
@@ -84,7 +84,7 @@
           console.log('Token invalid or expired, redirecting to login');
           localStorage.removeItem('authToken');
           localStorage.removeItem('authUser');
-          window.location.href = '/login.html' + queryString;
+          window.location.href = 'login.html' + queryString;
           return;
         }
         
@@ -98,7 +98,7 @@
         rootEl.classList.remove('hidden');
         
         // Now dynamically import the React app
-        await import('/src/main.tsx');
+        await import('./src/main.tsx');
         
       } catch (err) {
         console.error('Auth check failed:', err);
@@ -109,7 +109,7 @@
           <button onclick="window.location.reload()" style="background: #9cff80; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
             Retry
           </button>
-          <a href="/login.html${queryString}" style="color: #9cff80; margin-top: 16px;">
+          <a href="login.html${queryString}" style="color: #9cff80; margin-top: 16px;">
             Go to Login
           </a>
         `;
