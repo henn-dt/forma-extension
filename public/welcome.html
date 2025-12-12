@@ -8,13 +8,13 @@
     <style>
         @font-face {
             font-family: 'NB Grotesk';
-            src: url('/fonts/NBGROTESK-REGULAR.OTF') format('opentype');
+            src: url('fonts/NBGROTESK-REGULAR.OTF') format('opentype');
             font-weight: normal;
         }
 
         @font-face {
             font-family: 'NB Grotesk';
-            src: url('/fonts/NBGROTESK-BOLD.OTF') format('opentype');
+            src: url('fonts/NBGROTESK-BOLD.OTF') format('opentype');
             font-weight: bold;
         }
 
@@ -105,7 +105,7 @@
 
 <body>
     <div class="welcome-container">
-        <img src="/logo-HENN.png" alt="HENN Logo" class="logo">
+        <img src="logo-HENN.png" alt="HENN Logo" class="logo">
 
         <div id="content">
             <h1>Welcome<span id="userName" class="user-name"></span>!</h1>
@@ -122,7 +122,7 @@
         // Get user info using JWT token
         const token = localStorage.getItem('authToken');
         if (token) {
-            fetch('/api/user', { 
+            fetch('api/user', { 
                 headers: { 'Authorization': 'Bearer ' + token }
             })
                 .then(res => res.json())
@@ -139,7 +139,7 @@
             e.preventDefault();
             const queryString = window.location.search;
             console.log('Going to project with params:', queryString);
-            window.location.href = '/' + queryString;
+            window.location.href = 'index.html' + queryString;
         });
 
         // Logout handler
@@ -147,7 +147,7 @@
             e.preventDefault();
             try {
                 const token = localStorage.getItem('authToken');
-                await fetch('/api/logout', {
+                await fetch('api/logout', {
                     method: 'POST',
                     headers: token ? { 'Authorization': 'Bearer ' + token } : {}
                 });
@@ -159,7 +159,7 @@
             localStorage.removeItem('authUser');
             // Preserve query params for login page too
             const queryString = window.location.search;
-            window.location.href = '/login.html' + queryString;
+            window.location.href = 'login.html' + queryString;
         });
     </script>
 </body>

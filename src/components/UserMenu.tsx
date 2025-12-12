@@ -90,7 +90,7 @@ export function UserMenu({ currentPage = 'home', onNavigate }: UserMenuProps) {
     try {
       const token = localStorage.getItem('authToken');
       // Call logout endpoint (optional, mainly for session cleanup)
-      await fetch('/api/logout', {
+      await fetch('api/logout', {
         method: 'POST',
         headers: token ? { 'Authorization': 'Bearer ' + token } : {}
       });
@@ -119,7 +119,7 @@ export function UserMenu({ currentPage = 'home', onNavigate }: UserMenuProps) {
     <div className="user-menu" ref={menuRef}>
       <img 
         className="logo-icon" 
-        src="/logo-HENN.png" 
+        src="logo-HENN.png" 
         alt="Menu" 
         onClick={(e) => {
           e.stopPropagation();

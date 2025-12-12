@@ -40,7 +40,7 @@ export async function getTreeBlobId(): Promise<TreeUploadResult> {
     console.log('⚠️ No blobId found for this project. Uploading GLB via SDK...');
 
     // 3. Fetch GLB file from public folder (using 12m model)
-    const glbResponse = await fetch('/tree_model/treeModel_12m.glb');
+    const glbResponse = await fetch('tree_model/treeModel_12m.glb');
     if (!glbResponse.ok) {
       throw new Error('Failed to fetch GLB file from public folder');
     }

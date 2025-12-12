@@ -8,13 +8,13 @@
     <style>
         @font-face {
             font-family: 'NB Grotesk';
-            src: url('/fonts/NBGROTESK-REGULAR.OTF') format('opentype');
+            src: url('fonts/NBGROTESK-REGULAR.OTF') format('opentype');
             font-weight: normal;
         }
 
         @font-face {
             font-family: 'NB Grotesk';
-            src: url('/fonts/NBGROTESK-BOLD.OTF') format('opentype');
+            src: url('fonts/NBGROTESK-BOLD.OTF') format('opentype');
             font-weight: bold;
         }
 
@@ -146,7 +146,7 @@
 
 <body>
     <div class="register-card">
-        <img src="/logo-HENN.png" alt="HENN Logo" class="logo">
+        <img src="logo-HENN.png" alt="HENN Logo" class="logo">
         <h1>Create Account</h1>
         <p class="subtitle">Join the Forma Tree Detection platform</p>
 
@@ -177,13 +177,13 @@
         </form>
 
         <div class="link">
-            Already have an account? <a href="/login.html" id="loginLink">Sign in</a>
+            Already have an account? <a href="login.html" id="loginLink">Sign in</a>
         </div>
     </div>
 
     <script>
         // Preserve query params in the login link
-        document.getElementById('loginLink').href = '/login.html' + window.location.search;
+        document.getElementById('loginLink').href = 'login.html' + window.location.search;
 
         const form = document.getElementById('registerForm');
         const errorDiv = document.getElementById('error');
@@ -214,7 +214,7 @@
             submitBtn.textContent = 'Creating account...';
 
             try {
-                const response = await fetch('/api/register', {
+                const response = await fetch('api/register', {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -227,7 +227,7 @@
 
                 if (data.success) {
                     // Preserve Forma's query parameters when redirecting
-                    window.location.href = '/login.html' + window.location.search;
+                    window.location.href = 'login.html' + window.location.search;
                 } else {
                     errorDiv.textContent = data.error || 'Registration failed';
                     errorDiv.style.display = 'block';

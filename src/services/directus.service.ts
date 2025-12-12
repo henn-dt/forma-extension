@@ -71,7 +71,7 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
 
 class DirectusService {
     private currentUser: FormaUser | null = null;
-    private baseUrl = '/api/directus';
+    private baseUrl = 'api/directus';
 
     constructor() {
         // Load user from storage on initialization
@@ -91,7 +91,7 @@ class DirectusService {
         size: string // "4951m × 4886m"
     ): Promise<ProjectSyncResult> {
         try {
-            const response = await authFetch('/api/forma-project/sync', {
+            const response = await authFetch('api/forma-project/sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -119,7 +119,7 @@ class DirectusService {
      */
     async checkFormaProject(formaProjectId: string): Promise<{ exists: boolean; project: FormaProject | null }> {
         try {
-            const response = await authFetch(`/api/forma-project/check/${encodeURIComponent(formaProjectId)}`);
+            const response = await authFetch(`api/forma-project/check/${encodeURIComponent(formaProjectId)}`);
 
             if (!response.ok) {
                 const error = await response.json();
@@ -138,7 +138,7 @@ class DirectusService {
      */
     async getMyProjects(): Promise<MyProjectsResult> {
         try {
-            const response = await authFetch('/api/my-projects');
+            const response = await authFetch('api/my-projects');
 
             if (!response.ok) {
                 const error = await response.json();
